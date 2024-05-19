@@ -25,4 +25,15 @@ public class PrimaryAccount extends Account {
             throw new InsufficientFundsException("Insufficient funds for withdrawal.");
         }
     }
+
+    @Override
+    public String toString() {
+        return "PrimaryAccount{" +
+                "accountId='" + accountId + '\'' +
+                ", balance=" + balance +
+                ", owner=" + owner.getId() +
+                ", transactions=" + transactions.size() +
+                ", cards=" + cards.stream().map(Card::getCardNumber).toList() +
+                '}';
+    }
 }

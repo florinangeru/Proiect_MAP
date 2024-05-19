@@ -5,23 +5,20 @@ import com.banking.exceptions.InsufficientFundsException;
 import com.banking.exceptions.InvalidAccountException;
 import com.banking.models.*;
 import com.banking.services.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Main {
+    private static final Logger logger = LogManager.getLogger(Main.class);
     private static final Scanner scanner = new Scanner(System.in);
     private static final BankService bankService = new BankService();
-    private static final StorageService storageService = StorageService.getInstance();
-    private static final AuditService auditService = AuditService.getInstance();
+    private static final Random random = new Random();
+
 
     public static void main(String[] args) {
-        // Load data from CSV
-        storageService.loadCustomers();
-        storageService.loadAccounts();
-        storageService.loadTransactions();
-        storageService.loadCards();
-
         boolean exit = false;
         while (!exit) {
             displayMainMenu();
@@ -99,7 +96,6 @@ public class Main {
         scanner.nextLine(); // Consume newline
 
         bankService.createCustomer(name, surname, age);
-        auditService.logAction("createCustomer");
         System.out.println("Customer created successfully.");
     }
 
@@ -107,40 +103,135 @@ public class Main {
         listCustomers();
         System.out.print("Enter customer ID: ");
         String customerId = scanner.nextLine();
-        System.out.print("Enter account type (PRIMARY/SAVINGS): ");
-        String type = scanner.nextLine().toUpperCase();
+        String type = null;
 
-        try {
-            bankService.createAccount(customerId, AccountType.valueOf(type));
-            auditService.logAction("createAccount");
-            System.out.println("Account created successfully.");
-        } catch (IllegalArgumentException e) {
-            System.out.println("Invalid account type.");
-        } catch (InvalidAccountException e) {
-            System.out.println(e.getMessage());
+        System.out.println("Select Account type:");
+        System.out.println("1. PRIMARY");
+        System.out.println("2. SAVINGS");
+        System.out.print("Enter your choice: ");
+        int choice = scanner.nextInt();
+        scanner.nextLine(); // Consume newline
+        switch (choice) {
+            case 1:
+                type = "PRIMARY";
+                break;
+            case 2:
+                type = "SAVINGS";
+                break;
+            default:
+                System.out.println("Invalid choice.");
+                logger.error("Invalid choice account type");
+        }
+
+        if (type != null) {
+            try {
+                bankService.createAccount(customerId, AccountType.valueOf(type));
+                System.out.println("Account created successfully.");
+            } catch (IllegalArgumentException e) {
+                System.out.println("Invalid account type.");
+                logger.error("Invalid account type: {}", type, e);
+            } catch (InvalidAccountException e) {
+                System.out.println(e.getMessage());
+                logger.error("Error creating account: {}", e.getMessage(), e);
+            }
         }
     }
 
     private static void makeTransaction() {
-        listAccounts();
-        System.out.print("Enter account ID: ");
-        String accountId = scanner.nextLine();
-        System.out.print("Enter amount: ");
-        double amount = scanner.nextDouble();
-        scanner.nextLine(); // Consume newline
-        System.out.print("Enter transaction type (DEPOSIT/WITHDRAWAL): ");
-        String type = scanner.nextLine().toUpperCase();
+        listCustomers();
+        System.out.print("Enter customer ID: ");
+        String customerId = scanner.nextLine();
 
         try {
-            bankService.makeTransaction(accountId, amount, type);
-            auditService.logAction("makeTransaction");
-            System.out.println("Transaction completed successfully.");
-        } catch (IllegalArgumentException e) {
-            System.out.println("Invalid transaction type.");
-        } catch (InsufficientFundsException | InvalidAccountException e) {
+            Customer customer = bankService.getCustomerById(customerId);
+            if (customer == null) {
+                System.out.println("Customer not found.");
+                return;
+            }
+
+            List<Account> accounts = customer.getAccounts();
+            if (accounts.isEmpty()) {
+                System.out.println("No accounts found for this customer.");
+                return;
+            }
+
+            System.out.println("Accounts:");
+            for (int i = 0; i < accounts.size(); i++) {
+                System.out.println((i + 1) + ". " + accounts.get(i));
+            }
+            System.out.print("Select account: ");
+            int accountChoice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            if (accountChoice < 1 || accountChoice > accounts.size()) {
+                System.out.println("Invalid choice.");
+                return;
+            }
+
+            Account account = accounts.get(accountChoice - 1);
+
+            System.out.println("Select transaction type:");
+            System.out.println("1. Transfer");
+            System.out.println("2. Withdrawal");
+            System.out.println("3. Deposit");
+            System.out.print("Enter your choice: ");
+            int transactionChoice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline
+
+            double amount;
+            switch (transactionChoice) {
+                case 1:
+                    // Transfer
+                    System.out.print("Enter destination account ID: ");
+                    String destinationAccountId = scanner.nextLine();
+                    Account destinationAccount = bankService.getAccountById(destinationAccountId);
+                    if (destinationAccount == null) {
+                        System.out.println("Destination account not found.");
+                        return;
+                    }
+                    System.out.print("Enter amount to transfer: ");
+                    amount = scanner.nextDouble();
+                    scanner.nextLine(); // Consume newline
+                    if (amount <= 0) {
+                        System.out.println("Amount must be positive.");
+                        return;
+                    }
+                    bankService.transfer(account.getAccountId(), destinationAccount.getAccountId(), amount);
+                    System.out.println("Transfer completed successfully.");
+                    break;
+                case 2:
+                    // Withdrawal
+                    System.out.print("Enter amount to withdraw: ");
+                    amount = scanner.nextDouble();
+                    scanner.nextLine(); // Consume newline
+                    if (amount <= 0) {
+                        System.out.println("Amount must be positive.");
+                        return;
+                    }
+                    bankService.withdraw(account.getAccountId(), amount);
+                    System.out.println("Withdrawal completed successfully.");
+                    break;
+                case 3:
+                    // Deposit
+                    System.out.print("Enter amount to deposit: ");
+                    amount = scanner.nextDouble();
+                    scanner.nextLine(); // Consume newline
+                    if (amount <= 0) {
+                        System.out.println("Amount must be positive.");
+                        return;
+                    }
+                    bankService.deposit(account.getAccountId(), amount);
+                    System.out.println("Deposit completed successfully.");
+                    break;
+                default:
+                    System.out.println("Invalid choice.");
+            }
+        } catch (InvalidAccountException | InsufficientFundsException e) {
             System.out.println(e.getMessage());
+            logger.error("Error making transaction: {}", e.getMessage(), e);
         }
     }
+
 
     private static void generateBankStatement() {
         listAccounts();
@@ -157,10 +248,13 @@ public class Main {
             Date endDate = dateFormat.parse(endDateStr);
 
             BankStatement statement = bankService.generateBankStatement(accountId, startDate, endDate);
-            auditService.logAction("generateBankStatement");
             displayBankStatement(statement);
+        } catch (InvalidAccountException e) {
+            System.out.println(e.getMessage());
+            logger.error("Error generating bank statement: {}", e.getMessage(), e);
         } catch (Exception e) {
             System.out.println("Error generating bank statement: " + e.getMessage());
+            logger.error("Error generating bank statement: {}", e.getMessage(), e);
         }
     }
 
@@ -203,6 +297,7 @@ public class Main {
             System.out.println("1. Name");
             System.out.println("2. Surname");
             System.out.println("3. Age");
+            System.out.println("Or 99. To DELETE Customer");
             System.out.print("Enter your choice: ");
             int choice = scanner.nextInt();
             scanner.nextLine(); // Consume newline
@@ -212,41 +307,43 @@ public class Main {
                     System.out.print("Enter new name: ");
                     String name = scanner.nextLine();
                     customer.setName(name);
+                    bankService.updateCustomer(customer);
+                    System.out.println("Customer updated successfully.");
                     break;
                 case 2:
                     System.out.print("Enter new surname: ");
                     String surname = scanner.nextLine();
                     customer.setSurname(surname);
+                    bankService.updateCustomer(customer);
+                    System.out.println("Customer updated successfully.");
                     break;
                 case 3:
                     System.out.print("Enter new age: ");
                     int age = scanner.nextInt();
-                    scanner.nextLine(); // Consume newline
+                    scanner.nextLine();
                     customer.setAge(age);
+                    bankService.updateCustomer(customer);
+                    System.out.println("Customer updated successfully.");
                     break;
+                case 99:
+                    System.out.println("Do you want to delete the customer? (yes/no): ");
+                    String deleteChoice = scanner.nextLine().toLowerCase();
+                    if (deleteChoice.equals("yes")) {
+                        if (customer.getAccounts().isEmpty()) {
+                            bankService.deleteCustomer(customerId);
+                            System.out.println("Customer deleted successfully.");
+                        } else {
+                            System.out.println("Customer cannot be deleted. They have associated accounts.");
+                        }
+                    }
                 default:
                     System.out.println("Invalid choice.");
-                    return;
             }
 
-            bankService.updateCustomer(customer);
-            auditService.logAction("editCustomer");
-            System.out.println("Customer updated successfully.");
 
-            // Delete customer
-            System.out.println("Do you want to delete the customer? (yes/no): ");
-            String deleteChoice = scanner.nextLine().toLowerCase();
-            if (deleteChoice.equals("yes")) {
-                if (customer.getAccounts().isEmpty()) {
-                    bankService.deleteCustomer(customerId);
-                    auditService.logAction("deleteCustomer");
-                    System.out.println("Customer deleted successfully.");
-                } else {
-                    System.out.println("Customer cannot be deleted. They have associated accounts.");
-                }
-            }
         } catch (InvalidAccountException e) {
             System.out.println(e.getMessage());
+            logger.error("Error editing customer: {}", e.getMessage(), e);
         }
     }
 
@@ -283,23 +380,54 @@ public class Main {
             Account account = accounts.get(accountChoice - 1);
 
             if (account instanceof SavingsAccount) {
-                System.out.print("Enter new interest rate: ");
-                double interestRate = scanner.nextDouble();
-                scanner.nextLine(); // Consume newline
-                ((SavingsAccount) account).setInterestRate(interestRate);
-                System.out.println("Interest rate updated successfully.");
+                System.out.println("1. Change interest rate");
+                System.out.println("Or 99. To DELETE Account");
+                System.out.print("Enter your choice: ");
+                int SavingsAccountChoice = scanner.nextInt();
+                scanner.nextLine();
+                switch (SavingsAccountChoice) {
+                    case 1:
+                        System.out.print("Enter new interest rate: ");
+                        double interestRate = scanner.nextDouble();
+                        scanner.nextLine(); // Consume newline
+                        ((SavingsAccount) account).setInterestRate(interestRate);
+                        System.out.println("Interest rate updated successfully.");
+                        break;
+                    case 99:
+                        System.out.println("Do you want to delete the account? (yes/no): ");
+                        String deleteChoice = scanner.nextLine().toLowerCase();
+                        if (deleteChoice.equals("yes")) {
+                            if (account.getBalance() == 0 && account.getCards().isEmpty()) {
+                                bankService.deleteAccount(account.getAccountId());
+                                System.out.println("Account deleted successfully.");
+                            } else {
+                                System.out.println("Account cannot be deleted. It has non-zero balance or associated cards.");
+                            }
+                        }
+                        break;
+                    default:
+                        System.out.println("Invalid choice.");
+
+                }
+
+
             } else if (account instanceof PrimaryAccount) {
                 System.out.println("1. Add Card");
                 System.out.println("2. Delete Card");
+                System.out.println("Or 99. To DELETE Account");
                 System.out.print("Enter your choice: ");
-                int cardChoice = scanner.nextInt();
+                int PrimaryAccountChoice = scanner.nextInt();
                 scanner.nextLine(); // Consume newline
 
-                switch (cardChoice) {
+                switch (PrimaryAccountChoice) {
                     case 1:
-                        System.out.print("Enter card number: ");
-                        String cardNumber = scanner.nextLine();
-                        account.addCard(new Card(cardNumber, new Date(), account));
+                        StringBuilder cardNumber = new StringBuilder(String.format("%04d", 1000 + random.nextInt(9000)));
+                        for (int i=0; i<3; i++){
+                            cardNumber.append(String.format("%04d", random.nextInt(9000)));
+                        }
+                        Card newCard = new Card(cardNumber.toString(), new Date(), account);
+                        ((PrimaryAccount) account).addCard(newCard);
+                        bankService.addCard(newCard);
                         System.out.println("Card added successfully.");
                         break;
                     case 2:
@@ -321,28 +449,31 @@ public class Main {
                             return;
                         }
 
-                        account.removeCard(cards.get(cardDeleteChoice - 1));
+                        Card cardToDelete = cards.get(cardDeleteChoice - 1);
+                        ((PrimaryAccount) account).removeCard(cardToDelete);
+                        bankService.removeCard(cardToDelete); // Add this line to ensure the card is removed from the service
                         System.out.println("Card deleted successfully.");
+                        break;
+                    case 99:
+                        System.out.println("Do you want to delete the account? (yes/no): ");
+                        String deleteChoice = scanner.nextLine().toLowerCase();
+                        if (deleteChoice.equals("yes")) {
+                            if (account.getBalance() == 0 && account.getCards().isEmpty()) {
+                                bankService.deleteAccount(account.getAccountId());
+                                System.out.println("Account deleted successfully.");
+                            } else {
+                                System.out.println("Account cannot be deleted. It has non-zero balance or associated cards.");
+                            }
+                        }
                         break;
                     default:
                         System.out.println("Invalid choice.");
                 }
             }
 
-            // Delete account
-            System.out.println("Do you want to delete the account? (yes/no): ");
-            String deleteChoice = scanner.nextLine().toLowerCase();
-            if (deleteChoice.equals("yes")) {
-                if (account.getBalance() == 0 && account.getCards().isEmpty()) {
-                    bankService.deleteAccount(account.getAccountId());
-                    auditService.logAction("deleteAccount");
-                    System.out.println("Account deleted successfully.");
-                } else {
-                    System.out.println("Account cannot be deleted. It has non-zero balance or associated cards.");
-                }
-            }
         } catch (InvalidAccountException e) {
             System.out.println(e.getMessage());
+            logger.error("Error editing account: {}", e.getMessage(), e);
         }
     }
 
@@ -405,17 +536,16 @@ public class Main {
 
             if (blockUnblockChoice == 1) {
                 card.block();
-                auditService.logAction("blockCard");
                 System.out.println("Card blocked successfully.");
             } else if (blockUnblockChoice == 2) {
                 card.unblock();
-                auditService.logAction("unblockCard");
                 System.out.println("Card unblocked successfully.");
             } else {
                 System.out.println("Invalid choice.");
             }
         } catch (InvalidAccountException e) {
             System.out.println(e.getMessage());
+            logger.error("Error blocking/unblocking card: {}", e.getMessage(), e);
         }
     }
 
@@ -442,41 +572,40 @@ public class Main {
             }
         } catch (InvalidAccountException e) {
             System.out.println(e.getMessage());
+            logger.error("Error getting balance: {}", e.getMessage(), e);
         }
     }
 
     private static void listCards() {
-        listCustomers();
-        System.out.print("Enter customer ID: ");
-        String customerId = scanner.nextLine();
         try {
-            Customer customer = bankService.getCustomerById(customerId);
-            if (customer == null) {
-                System.out.println("Customer not found.");
-                return;
-            }
-
-            List<Account> accounts = customer.getAccounts();
+            List<Account> accounts = bankService.getAllAccounts();
             if (accounts.isEmpty()) {
-                System.out.println("No accounts found for this customer.");
+                System.out.println("No accounts found.");
                 return;
             }
 
+            boolean cardsFound = false;
             for (Account account : accounts) {
                 List<Card> cards = account.getCards();
                 if (cards.isEmpty()) {
                     System.out.println("No cards found for account: " + account.getAccountId());
                 } else {
+                    cardsFound = true;
                     System.out.println("Cards for account: " + account.getAccountId());
                     for (Card card : cards) {
                         System.out.println(card + " - Status: " + (card.isBlocked() ? "Blocked" : "Active"));
                     }
                 }
             }
-        } catch (InvalidAccountException e) {
+            if (!cardsFound) {
+                System.out.println("No cards found for any account.");
+            }
+        } catch (Exception e) {
             System.out.println(e.getMessage());
+            logger.error("Error listing cards: {}", e.getMessage(), e);
         }
     }
+
 
     private static void displayBankStatement(BankStatement statement) {
         System.out.println("Bank Statement ID: " + statement.getStatementId());

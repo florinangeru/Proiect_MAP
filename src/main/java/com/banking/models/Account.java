@@ -56,9 +56,9 @@ public abstract class Account {
         return "Account{" +
                 "accountId='" + accountId + '\'' +
                 ", balance=" + balance +
-                ", owner=" + owner +
-                ", transactions=" + transactions +
-                ", cards=" + cards +
+                ", owner=" + owner.getId() +
+                ", transactions=" + transactions.size() +
+                ", cards=" + cards.stream().map(Card::getCardNumber).toList() +
                 '}';
     }
 }

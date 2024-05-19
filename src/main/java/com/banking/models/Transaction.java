@@ -18,6 +18,7 @@ public class Transaction {
         this.account = account;
     }
 
+
     public String getTransactionId() {
         return transactionId;
     }
@@ -38,14 +39,18 @@ public class Transaction {
         return account;
     }
 
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
+
     @Override
     public String toString() {
         return "Transaction{" +
                 "transactionId='" + transactionId + '\'' +
-                ", timestamp=" + timestamp +
                 ", amount=" + amount +
                 ", type=" + type +
-                ", account=" + account +
+                ", timestamp=" + timestamp +
+                ", account=" + account.getAccountId() +
                 '}';
     }
 }

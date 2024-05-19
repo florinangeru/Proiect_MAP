@@ -45,6 +45,7 @@ public class Card {
                 "cardNumber='" + cardNumber + '\'' +
                 ", expirationDate=" + expirationDate +
                 ", blocked=" + blocked +
+                ", account=" + account.getAccountId() +
                 '}';
     }
 }

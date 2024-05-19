@@ -61,7 +61,7 @@ public class Customer {
                 ", name='" + name + '\'' +
                 ", surname='" + surname + '\'' +
                 ", age=" + age +
-                ", accounts=" + accounts +
+                ", accounts=" + accounts.stream().map(Account::getAccountId).toList() +
                 '}';
     }
 }

@@ -42,4 +42,16 @@ public class SavingsAccount extends Account {
         balance += interest;
         transactions.add(new Transaction("T" + transactions.size(), interest, TransactionType.DEPOSIT, this));
     }
+
+    @Override
+    public String toString() {
+        return "SavingsAccount{" +
+                "accountId='" + accountId + '\'' +
+                ", balance=" + balance +
+                ", owner=" + owner.getId() +
+                ", interestRate=" + interestRate +
+                ", transactions=" + transactions +
+                ", cards=" + cards.stream().map(Card::getCardNumber).toList() +
+                '}';
+    }
 }
