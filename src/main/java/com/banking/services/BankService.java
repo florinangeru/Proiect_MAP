@@ -11,10 +11,11 @@ import java.util.*;
 public class BankService implements BankServiceInterface {
     private Map<String, Customer> customers = new HashMap<>();
     private Map<String, Account> accounts = new HashMap<>();
+    private static int customerIndex = 0;
 
     @Override
     public void createCustomer(String name, String surname, int age) {
-        String customerId = UUID.randomUUID().toString();
+        String customerId = String.format("%04d", ++customerIndex);
         Customer customer = new Customer(customerId, name, surname, age);
         customers.put(customerId, customer);
     }
@@ -26,7 +27,8 @@ public class BankService implements BankServiceInterface {
             throw new InvalidAccountException("Customer not found");
         }
 
-        String accountId = UUID.randomUUID().toString();
+        Random random = new Random();
+        String accountId = "RO49AAAA1B31007" + (00000000 + random.nextInt(900000000));
         Account account;
         if (type == AccountType.PRIMARY) {
             account = new PrimaryAccount(accountId, customer);
