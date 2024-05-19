@@ -229,6 +229,7 @@ public class BankService implements BankServiceInterface {
         logger.info("Withdrew {} from account {}", amount, accountId);
         auditService.logAction("withdraw");
         saveData("transactions");
+
     }
 
     @Override
@@ -268,7 +269,8 @@ public class BankService implements BankServiceInterface {
             }
             case "transactions" -> {
                 storageService.saveTransactions(transactions);
-                auditService.logAction("saveTransactions");
+                storageService.saveAccounts(accounts.values());
+                auditService.logAction("saveTransactions&Accounts");
             }
             case "cards" -> {
                 storageService.saveCards(cards);

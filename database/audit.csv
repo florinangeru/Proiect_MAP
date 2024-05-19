@@ -1,3 +1,5 @@
+createCustomer,Sun May 19 15:38:36 EEST 2024
+createAccount,Sun May 19 15:41:27 EEST 2024
 loadData,Sun May 19 21:46:06 EEST 2024
 createCustomer,Sun May 19 21:46:51 EEST 2024
 saveCustomers,Sun May 19 21:46:51 EEST 2024
@@ -14,3 +16,6 @@ loadData,Sun May 19 22:20:15 EEST 2024
 loadData,Sun May 19 22:21:34 EEST 2024
 transfer,Sun May 19 22:22:25 EEST 2024
 saveTransactions,Sun May 19 22:22:25 EEST 2024
+loadData,Sun May 19 22:27:32 EEST 2024
+loadData,Sun May 19 22:35:41 EEST 2024
+loadData,Sun May 19 22:39:12 EEST 2024
