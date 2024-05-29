@@ -19,3 +19,11 @@ saveTransactions,Sun May 19 22:22:25 EEST 2024
 loadData,Sun May 19 22:27:32 EEST 2024
 loadData,Sun May 19 22:35:41 EEST 2024
 loadData,Sun May 19 22:39:12 EEST 2024
+loadData,Tue May 28 16:06:13 EEST 2024
+createAccount,Tue May 28 21:42:16 EEST 2024
+saveAccounts,Tue May 28 21:42:16 EEST 2024
+deposit,Tue May 28 21:43:01 EEST 2024
+saveTransactions&Accounts,Tue May 28 21:43:01 EEST 2024
+withdraw,Tue May 28 21:45:07 EEST 2024
+saveTransactions&Accounts,Tue May 28 21:45:07 EEST 2024
+loadData,Wed May 29 19:58:36 EEST 2024
